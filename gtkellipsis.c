@@ -1145,7 +1145,7 @@ gtk_ellipsis_forall (GtkContainer *container,
   if (priv->label)
     (* callback) (priv->label, callback_data);
 
-  if (priv->ellipsis_label)
+  if (include_internals && priv->ellipsis_label)
     (* callback) (priv->ellipsis_label, callback_data);
 
 }
