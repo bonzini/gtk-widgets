@@ -3,7 +3,8 @@ LDFLAGS = `pkg-config --libs gtk+-2.0`
 
 WIDGETS = gtkellipsis.o gtkresizer.o gtkresizermarshal.o \
 	gtkstacklayout.o gtklayoutmanager.o gtklayoutadaptor.o \
-	gtkstacklayoutmarshal.o gtkstacklayoutmanager.o
+	gtkstacklayoutmarshal.o gtkstacklayoutmanager.o \
+	gtkflowlayoutmanager.o
 
 all: demo layout
 demo: demo.o $(WIDGETS)

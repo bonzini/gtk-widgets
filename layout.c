@@ -23,6 +23,7 @@
 #include <gtk/gtk.h>
 #include "gtkstacklayout.h"
 #include "gtkstacklayoutmanager.h"
+#include "gtkflowlayoutmanager.h"
 
 int main (int argc, char **argv)
 {
@@ -30,7 +31,9 @@ int main (int argc, char **argv)
   GtkWidget *scrolled_window;
   GtkWidget *layout;
   GtkWidget *label;
+  GtkWidget *button;
   GtkLayoutManager *stack;
+  GtkLayoutManager *flow;
   
   gtk_init (&argc, &argv);
   
@@ -61,6 +64,24 @@ int main (int argc, char **argv)
   }
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
   gtk_container_add (GTK_CONTAINER (layout), label);
+
+  flow = gtk_flow_layout_manager_new ();
+  gtk_layout_manager_set_border_width (stack, 4);
+  gtk_stack_layout_push (GTK_STACK_LAYOUT (layout), flow);
+
+  button = gtk_button_new_from_stock (GTK_STOCK_OK);
+  gtk_container_add (GTK_CONTAINER (layout), button);
+
+  button = gtk_button_new_from_stock (GTK_STOCK_CANCEL);
+  gtk_container_add (GTK_CONTAINER (layout), button);
+
+  button = gtk_button_new_from_stock (GTK_STOCK_HELP);
+  gtk_container_add (GTK_CONTAINER (layout), button);
+
+  button = gtk_button_new_with_label ("And one more");
+  gtk_container_add (GTK_CONTAINER (layout), button);
+
+  gtk_stack_layout_pop (GTK_STACK_LAYOUT (layout));
 
   label = gtk_label_new ("This is a long text This is a long text "
 			 "This is a long text This is a long text "

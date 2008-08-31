@@ -29,10 +29,12 @@
 #include <stdlib.h>
 
 #include <gtk/gtk.h>
-#include "gtklayoutmanager.h"
-#include "gtkstacklayoutmarshal.h"
 #include <gobject/gobjectnotifyqueue.c>
 #include <gobject/gvaluecollector.h>
+
+#include "gtklayoutmanager.h"
+#include "gtkstacklayout.h"
+#include "gtkstacklayoutmarshal.h"
 
 #define I_(x)		(x)
 #define P_(x)		(x)
@@ -1042,7 +1044,9 @@ gtk_layout_manager_size_allocate (GtkLayoutManager *layout_manager,
 
   g_return_if_fail (GTK_IS_LAYOUT_MANAGER (layout_manager));
   g_return_if_fail (allocation != NULL);
-  g_return_if_fail (allocation->width == 0);
+  g_return_if_fail (layout_manager->root != NULL);
+  g_return_if_fail (allocation->x + allocation->width
+		    <= layout_manager->root->width);
   g_return_if_fail (allocation->height == 0);
 
   class = GTK_LAYOUT_MANAGER_GET_CLASS (layout_manager);

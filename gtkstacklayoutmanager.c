@@ -165,7 +165,9 @@ gtk_stack_layout_manager_size_allocate (GtkLayoutManager *layout_manager,
   GSList *child;
 
   int border_width = layout_manager->border_width;
+  int available_width = allocation->width - 2 * border_width;
 
+  allocation->width = 0;
   for (child = stack->children; child; child = child->next)
     {
       GtkLayoutManager *submanager = GTK_LAYOUT_MANAGER (child->data);
@@ -173,7 +175,7 @@ gtk_stack_layout_manager_size_allocate (GtkLayoutManager *layout_manager,
       /* Allocate the subcomponent.  */
       child_allocation.x = allocation->x + border_width;
       child_allocation.y = allocation->y + border_width + allocation->height;
-      child_allocation.width = 0;
+      child_allocation.width = available_width;
       child_allocation.height = 0;
       gtk_layout_manager_size_allocate (submanager, &child_allocation);
 

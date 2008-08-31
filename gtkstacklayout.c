@@ -619,13 +619,13 @@ gtk_stack_layout_size_allocate (GtkWidget     *widget,
   border_width = GTK_CONTAINER (widget)->border_width;
 
   widget->allocation = *allocation;
-  child_allocation.x = border_width;
-  child_allocation.y = border_width;
-  child_allocation.width = 0;
-  child_allocation.height = 0;
-
   stack_layout->width = MAX (stack_layout->width, allocation->width);
   stack_layout->height = MAX (stack_layout->height, allocation->height);
+
+  child_allocation.x = border_width;
+  child_allocation.y = border_width;
+  child_allocation.width = stack_layout->width - 2 * border_width;
+  child_allocation.height = 0;
 
   gtk_layout_manager_size_allocate (stack_layout->root, &child_allocation);
 
