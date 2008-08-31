@@ -3,7 +3,7 @@ LDFLAGS = `pkg-config --libs gtk+-2.0`
 
 WIDGETS = gtkellipsis.o gtkresizer.o gtkresizermarshal.o \
 	gtkstacklayout.o gtklayoutmanager.o gtklayoutadaptor.o \
-	gtkstacklayoutmarshal.o
+	gtkstacklayoutmarshal.o gtkstacklayoutmanager.o
 
 all: demo layout
 demo: demo.o $(WIDGETS)
@@ -16,6 +16,7 @@ demo.o: demo.c gtkresizer.h gtkellipsis.h
 
 gtkstacklayout.o: gtkstacklayout.c gtkstacklayoutmarshal.h gtkstacklayout.h
 gtklayoutmanager.o: gtklayoutmanager.c gtkstacklayoutmarshal.h gtklayoutmanager.h gtkstacklayout.h
+gtkstacklayoutmanager.o: gtkstacklayoutmanager.c gtkstacklayoutmanager.h
 gtkstacklayoutmarshal.o: gtkstacklayoutmarshal.c gtkstacklayoutmarshal.h
 gtklayoutadaptor.o: gtklayoutadaptor.c gtklayoutadaptor.h
 

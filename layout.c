@@ -22,6 +22,7 @@
 
 #include <gtk/gtk.h>
 #include "gtkstacklayout.h"
+#include "gtkstacklayoutmanager.h"
 
 int main (int argc, char **argv)
 {
@@ -29,6 +30,7 @@ int main (int argc, char **argv)
   GtkWidget *scrolled_window;
   GtkWidget *layout;
   GtkWidget *label;
+  GtkLayoutManager *stack;
   
   gtk_init (&argc, &argv);
   
@@ -47,6 +49,19 @@ int main (int argc, char **argv)
   layout = gtk_stack_layout_new (NULL, NULL);
   gtk_container_add (GTK_CONTAINER (scrolled_window), layout);
 
+  stack = gtk_stack_layout_manager_new ();
+  gtk_layout_manager_set_border_width (stack, 4);
+  gtk_stack_layout_push (GTK_STACK_LAYOUT (layout), stack);
+
+  label = gtk_label_new ("This is a short blue text");
+  {
+    GtkStyle *style = gtk_widget_get_style (window);
+    GdkColor active_bg_color = style->bg[GTK_STATE_SELECTED];
+    gtk_widget_modify_fg (label, GTK_STATE_NORMAL, &active_bg_color);
+  }
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_container_add (GTK_CONTAINER (layout), label);
+
   label = gtk_label_new ("This is a long text This is a long text "
 			 "This is a long text This is a long text "
 			 "This is a long text This is a long text "
@@ -59,8 +74,15 @@ int main (int argc, char **argv)
 			 "This is a long text This is a long text");
 
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_container_add (GTK_CONTAINER (layout), label);
 
-  gtk_container_set_border_width (GTK_CONTAINER (layout), 4);
+  label = gtk_label_new ("This is a short blue text");
+  {
+    GtkStyle *style = gtk_widget_get_style (window);
+    GdkColor active_bg_color = style->bg[GTK_STATE_SELECTED];
+    gtk_widget_modify_fg (label, GTK_STATE_NORMAL, &active_bg_color);
+  }
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
   gtk_container_add (GTK_CONTAINER (layout), label);
 
   gtk_window_set_default_size (GTK_WINDOW (window), 300, 40);
