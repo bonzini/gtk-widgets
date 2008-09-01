@@ -25,7 +25,7 @@
  */
 
 #include <gtk/gtk.h>
-#include "gtkstacklayout.h"
+#include "gtkmanagedlayout.h"
 #include "gtklayoutmanager.h"
 #include "gtklayoutadaptor.h"
 
@@ -164,7 +164,7 @@ gtk_layout_adaptor_set_child (GtkLayoutAdaptor *layout_adaptor,
 
   if (child)
     {
-      GtkStackLayout *root = GTK_LAYOUT_MANAGER (layout_adaptor)->root;
+      GtkManagedLayout *root = GTK_LAYOUT_MANAGER (layout_adaptor)->root;
       gtk_widget_set_parent (child, GTK_WIDGET (root));
       layout_adaptor->child = child;
     }

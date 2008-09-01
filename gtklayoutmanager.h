@@ -44,17 +44,17 @@ G_BEGIN_DECLS
 #define GTK_IS_RESIZE_LAYOUT_MANAGER(widget) (GTK_IS_LAYOUT_MANAGER (widget) && ((GtkLayoutManager*) (widget))->resize_mode != GTK_RESIZE_PARENT)
 
 
-typedef struct _GtkLayoutManager	   GtkLayoutManager;
-typedef struct _GtkLayoutManagerClass  GtkLayoutManagerClass;
+typedef struct _GtkLayoutManager	GtkLayoutManager;
+typedef struct _GtkLayoutManagerClass   GtkLayoutManagerClass;
 
-typedef struct _GtkStackLayout        GtkStackLayout;
-typedef struct _GtkStackLayoutClass   GtkStackLayoutClass;
+typedef struct _GtkManagedLayout        GtkManagedLayout;
+typedef struct _GtkManagedLayoutClass   GtkManagedLayoutClass;
 
 struct _GtkLayoutManager
 {
   GtkObject object;
   GtkLayoutManager *parent;
-  GtkStackLayout *root;
+  GtkManagedLayout *root;
   GtkRequisition requisition;
   unsigned short border_width;
 };

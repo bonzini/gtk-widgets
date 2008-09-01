@@ -21,7 +21,7 @@
 
 
 #include <gtk/gtk.h>
-#include "gtkstacklayout.h"
+#include "gtkmanagedlayout.h"
 #include "gtkstacklayoutmanager.h"
 #include "gtkflowlayoutmanager.h"
 
@@ -49,12 +49,12 @@ int main (int argc, char **argv)
 
   gtk_container_add (GTK_CONTAINER (window), scrolled_window);
 
-  layout = gtk_stack_layout_new (NULL, NULL);
+  layout = gtk_managed_layout_new (NULL, NULL);
   gtk_container_add (GTK_CONTAINER (scrolled_window), layout);
 
   stack = gtk_stack_layout_manager_new ();
   gtk_layout_manager_set_border_width (stack, 4);
-  gtk_stack_layout_push (GTK_STACK_LAYOUT (layout), stack);
+  gtk_managed_layout_push (GTK_MANAGED_LAYOUT (layout), stack);
 
   label = gtk_label_new ("This is a short blue text");
   {
@@ -67,7 +67,7 @@ int main (int argc, char **argv)
 
   flow = gtk_flow_layout_manager_new ();
   gtk_layout_manager_set_border_width (stack, 4);
-  gtk_stack_layout_push (GTK_STACK_LAYOUT (layout), flow);
+  gtk_managed_layout_push (GTK_MANAGED_LAYOUT (layout), flow);
 
   button = gtk_button_new_from_stock (GTK_STOCK_OK);
   gtk_container_add (GTK_CONTAINER (layout), button);
@@ -81,7 +81,7 @@ int main (int argc, char **argv)
   button = gtk_button_new_with_label ("And one more");
   gtk_container_add (GTK_CONTAINER (layout), button);
 
-  gtk_stack_layout_pop (GTK_STACK_LAYOUT (layout));
+  gtk_managed_layout_pop (GTK_MANAGED_LAYOUT (layout));
 
   label = gtk_label_new ("This is a long text This is a long text "
 			 "This is a long text This is a long text "

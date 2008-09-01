@@ -26,7 +26,7 @@
 
 #include <glib-2.0/glib.h>
 #include <gtk/gtk.h>
-#include "gtkstacklayout.h"
+#include "gtkmanagedlayout.h"
 #include "gtklayoutmanager.h"
 #include "gtkstacklayoutmanager.h"
 

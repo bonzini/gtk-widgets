@@ -33,8 +33,8 @@
 #include <gobject/gvaluecollector.h>
 
 #include "gtklayoutmanager.h"
-#include "gtkstacklayout.h"
-#include "gtkstacklayoutmarshal.h"
+#include "gtkmanagedlayout.h"
+#include "gtkmanagedlayoutmarshal.h"
 
 #define I_(x)		(x)
 #define P_(x)		(x)
@@ -189,7 +189,7 @@ gtk_layout_manager_class_init (GtkLayoutManagerClass *class)
 		  G_SIGNAL_RUN_FIRST,
 		  G_STRUCT_OFFSET (GtkLayoutManagerClass, add),
 		  NULL, NULL,
-		  gtk_stacklayout_marshal_VOID__OBJECT,
+		  gtk_managedlayout_marshal_VOID__OBJECT,
 		  G_TYPE_NONE, 1,
 		  GTK_TYPE_LAYOUT_MANAGER);
   layout_manager_signals[REMOVE] =
@@ -198,7 +198,7 @@ gtk_layout_manager_class_init (GtkLayoutManagerClass *class)
 		  G_SIGNAL_RUN_FIRST,
 		  G_STRUCT_OFFSET (GtkLayoutManagerClass, remove),
 		  NULL, NULL,
-		  gtk_stacklayout_marshal_VOID__OBJECT,
+		  gtk_managedlayout_marshal_VOID__OBJECT,
 		  G_TYPE_NONE, 1,
 		  GTK_TYPE_LAYOUT_MANAGER);
 }
@@ -816,7 +816,7 @@ gtk_layout_manager_set_border_width (GtkLayoutManager *layout_manager,
  * gtk_layout_manager_queue_resize:
  * @layout_manager: a #GtkLayoutManager
  * 
- * Queues a resize of the GtkStackLayout that is hosting @layout_manager.
+ * Queues a resize of the GtkManagedLayout that is hosting @layout_manager.
  **/
 void
 gtk_layout_manager_queue_resize (GtkLayoutManager *layout_manager)
