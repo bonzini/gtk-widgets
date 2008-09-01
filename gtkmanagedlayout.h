@@ -29,8 +29,6 @@
 
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
-#include "gtklayoutmanager.h"
-
 
 G_BEGIN_DECLS
 
@@ -41,21 +39,17 @@ G_BEGIN_DECLS
 #define GTK_IS_MANAGED_LAYOUT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GTK_TYPE_MANAGED_LAYOUT))
 #define GTK_MANAGED_LAYOUT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GTK_TYPE_MANAGED_LAYOUT, GtkManagedLayoutClass))
 
-
-#if 0
 typedef struct _GtkManagedLayout        GtkManagedLayout;
 typedef struct _GtkManagedLayoutClass   GtkManagedLayoutClass;
-#endif
 
 struct _GtkManagedLayout
 {
-  GtkContainer container;
-
-  GtkLayoutManager *root;
-  GSList	   *current;
+  GtkBin bin;
 
   gint height;
   gint width;
+  gint requested_height;
+  gint requested_width;
 
   GtkAdjustment *hadjustment;
   GtkAdjustment *vadjustment;
@@ -77,10 +71,6 @@ GType          gtk_managed_layout_get_type        (void) G_GNUC_CONST;
 GtkWidget*     gtk_managed_layout_new             (GtkAdjustment *hadjustment,
 					         GtkAdjustment *vadjustment);
   
-void	       gtk_managed_layout_push		(GtkManagedLayout   *managed_layout,
-			                         GtkLayoutManager *manager);
-void	       gtk_managed_layout_pop		(GtkManagedLayout   *managed_layout);
-
 GtkAdjustment* gtk_managed_layout_get_hadjustment (GtkManagedLayout     *managed_layout);
 GtkAdjustment* gtk_managed_layout_get_vadjustment (GtkManagedLayout     *managed_layout);
 void           gtk_managed_layout_set_hadjustment (GtkManagedLayout     *managed_layout,
@@ -88,11 +78,6 @@ void           gtk_managed_layout_set_hadjustment (GtkManagedLayout     *managed
 void           gtk_managed_layout_set_vadjustment (GtkManagedLayout     *managed_layout,
 						 GtkAdjustment *adjustment);
 
-
-/* Private.  */
-void	       gtk_managed_layout_allocate_child (GtkWidget       *widget,
-						GdkPoint	*origin,
-						GtkRequisition	*requisition);
 
 G_END_DECLS
 

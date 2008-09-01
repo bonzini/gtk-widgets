@@ -31,10 +31,9 @@
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
 
-#include "gtklayoutmanager.h"
 #include "gtkmanagedlayout.h"
 #include "gtkmanagedlayoutmarshal.h"
-#include "gtklayoutadaptor.h"
+#include "gtklayoutable.h"
 
 #define I_(x)		(x)
 #define P_(x)		(x)
@@ -57,26 +56,19 @@ static void gtk_managed_layout_set_property       (GObject        *object,
 static GObject *gtk_managed_layout_constructor    (GType                  type,
 					   guint                  n_properties,
 					   GObjectConstructParam *properties);
-static void gtk_managed_layout_child_map (GtkWidget *widget,
-		                        gpointer   unused);
-static void gtk_managed_layout_destroy   (GtkObject        *object);
+static void gtk_managed_layout_finalize   (GObject        *object);
 static void gtk_managed_layout_realize            (GtkWidget      *widget);
 static void gtk_managed_layout_unrealize          (GtkWidget      *widget);
-static void gtk_managed_layout_map                (GtkWidget      *widget);
+static void gtk_managed_layout_map            (GtkWidget      *widget);
+static void gtk_managed_layout_unmap          (GtkWidget      *widget);
 static void gtk_managed_layout_size_request       (GtkWidget      *widget,
                                            GtkRequisition *requisition);
 static void gtk_managed_layout_size_allocate      (GtkWidget      *widget,
                                            GtkAllocation  *allocation);
 static gint gtk_managed_layout_expose             (GtkWidget      *widget,
                                            GdkEventExpose *event);
-static void gtk_managed_layout_add                (GtkContainer   *container,
-					   GtkWidget      *widget);
-static void gtk_managed_layout_remove             (GtkContainer   *container,
-                                           GtkWidget      *widget);
-static void gtk_managed_layout_forall             (GtkContainer   *container,
-                                           gboolean        include_internals,
-                                           GtkCallback     callback,
-                                           gpointer        callback_data);
+static void gtk_managed_layout_add (GtkContainer *container,
+		                    GtkWidget    *child);
 static void gtk_managed_layout_set_adjustments    (GtkManagedLayout      *managed_layout,
                                            GtkAdjustment  *hadj,
                                            GtkAdjustment  *vadj);
@@ -86,10 +78,10 @@ static void gtk_managed_layout_style_set          (GtkWidget      *widget,
 					   GtkStyle       *old_style);
 
 static void gtk_managed_layout_set_adjustment_upper (GtkAdjustment *adj,
-					     gdouble        upper,
-					     gboolean       always_emit_changed);
+						     gdouble        upper,
+						     gboolean       always_emit_changed);
 
-G_DEFINE_TYPE (GtkManagedLayout, gtk_managed_layout, GTK_TYPE_CONTAINER)
+G_DEFINE_TYPE (GtkManagedLayout, gtk_managed_layout, GTK_TYPE_BIN)
 
 /* Public interface
  */
@@ -231,13 +223,9 @@ gtk_managed_layout_set_adjustments (GtkManagedLayout     *managed_layout,
 }
 
 static void
-gtk_managed_layout_destroy (GtkObject *object)
+gtk_managed_layout_finalize (GObject *object)
 {
   GtkManagedLayout *managed_layout = GTK_MANAGED_LAYOUT (object);
-
-  /* Empty the stack; the only root is retained through the root.  */
-  while (managed_layout->current)
-    gtk_managed_layout_pop (managed_layout);
 
   if (managed_layout->hadjustment)
     {
@@ -250,16 +238,26 @@ gtk_managed_layout_destroy (GtkObject *object)
       managed_layout->vadjustment = NULL;
     }
 
-  /* Keep the reference to the root, it is needed by
-     gtk_managed_layout_forall.  */
-  GTK_OBJECT_CLASS (gtk_managed_layout_parent_class)->destroy (object);
+  G_OBJECT_CLASS (gtk_managed_layout_parent_class)->finalize (object);
+}
 
-  /* Delete it now.  */
-  if (managed_layout->root)
+static void
+gtk_managed_layout_destroy (GtkObject *object)
+{
+  GtkManagedLayout *managed_layout = GTK_MANAGED_LAYOUT (object);
+
+  if (managed_layout->hadjustment)
     {
-      g_object_unref (managed_layout->root);
-      managed_layout->root = NULL;
+      g_object_unref (managed_layout->hadjustment);
+      managed_layout->hadjustment = NULL;
     }
+  if (managed_layout->vadjustment)
+    {
+      g_object_unref (managed_layout->vadjustment);
+      managed_layout->vadjustment = NULL;
+    }
+
+  GTK_OBJECT_CLASS (gtk_managed_layout_parent_class)->destroy (object);
 }
 
 /**
@@ -304,8 +302,8 @@ gtk_managed_layout_set_vadjustment (GtkManagedLayout     *managed_layout,
 
 static void
 gtk_managed_layout_set_adjustment_upper (GtkAdjustment *adj,
-				       gdouble        upper,
-				       gboolean       always_emit_changed)
+				         gdouble        upper,
+				         gboolean       always_emit_changed)
 {
   gboolean changed = FALSE;
   gboolean value_changed = FALSE;
@@ -348,8 +346,11 @@ gtk_managed_layout_class_init (GtkManagedLayoutClass *class)
   gobject_class->set_property = gtk_managed_layout_set_property;
   gobject_class->get_property = gtk_managed_layout_get_property;
   gobject_class->constructor = gtk_managed_layout_constructor;
+  gobject_class->finalize = gtk_managed_layout_finalize;
 
   object_class->destroy = gtk_managed_layout_destroy;
+
+  container_class->add = gtk_managed_layout_add;
 
   g_object_class_install_property (gobject_class,
 				   PROP_HADJUSTMENT,
@@ -370,14 +371,11 @@ gtk_managed_layout_class_init (GtkManagedLayoutClass *class)
   widget_class->realize = gtk_managed_layout_realize;
   widget_class->unrealize = gtk_managed_layout_unrealize;
   widget_class->map = gtk_managed_layout_map;
+  widget_class->unmap = gtk_managed_layout_unmap;
   widget_class->size_request = gtk_managed_layout_size_request;
   widget_class->size_allocate = gtk_managed_layout_size_allocate;
   widget_class->expose_event = gtk_managed_layout_expose;
   widget_class->style_set = gtk_managed_layout_style_set;
-
-  container_class->add = gtk_managed_layout_add;
-  container_class->remove = gtk_managed_layout_remove;
-  container_class->forall = gtk_managed_layout_forall;
 
   class->set_scroll_adjustments = gtk_managed_layout_set_adjustments;
 
@@ -442,10 +440,12 @@ gtk_managed_layout_set_property (GObject      *object,
 static void
 gtk_managed_layout_init (GtkManagedLayout *managed_layout)
 {
-  managed_layout->root = NULL;
+  GTK_WIDGET_UNSET_FLAGS (managed_layout, GTK_NO_WINDOW);
 
   managed_layout->width = 100;
   managed_layout->height = 100;
+  managed_layout->requested_width = -1;
+  managed_layout->requested_height = -1;
 
   managed_layout->hadjustment = NULL;
   managed_layout->vadjustment = NULL;
@@ -484,11 +484,13 @@ static void
 gtk_managed_layout_realize (GtkWidget *widget)
 {
   GtkManagedLayout *managed_layout;
+  GtkBin *bin;
   GdkWindowAttr attributes;
   gint attributes_mask;
 
   g_return_if_fail (GTK_IS_MANAGED_LAYOUT (widget));
 
+  bin = GTK_BIN (widget);
   managed_layout = GTK_MANAGED_LAYOUT (widget);
   GTK_WIDGET_SET_FLAGS (managed_layout, GTK_REALIZED);
 
@@ -520,12 +522,40 @@ gtk_managed_layout_realize (GtkWidget *widget)
 					&attributes, attributes_mask);
   gdk_window_set_user_data (managed_layout->bin_window, widget);
 
+  if (bin->child)
+    gtk_widget_set_parent_window (bin->child, managed_layout->bin_window);
+
   widget->style = gtk_style_attach (widget->style, widget->window);
   gtk_style_set_background (widget->style, managed_layout->bin_window, GTK_STATE_NORMAL);
+}
 
-  gtk_layout_manager_foreach_widget (managed_layout->root,
-				     (GtkCallback) gtk_widget_set_parent_window,
-				     managed_layout->bin_window);
+ 
+static void 
+gtk_managed_layout_map (GtkWidget *widget)
+{
+  GtkManagedLayout *managed_layout;
+
+  g_return_if_fail (GTK_IS_MANAGED_LAYOUT (widget));
+
+  managed_layout = GTK_MANAGED_LAYOUT (widget);
+  gdk_window_show (managed_layout->bin_window);
+  gdk_window_show (widget->window);
+
+  GTK_WIDGET_CLASS (gtk_managed_layout_parent_class)->map (widget);
+}
+
+static void 
+gtk_managed_layout_unmap (GtkWidget *widget)
+{
+  GtkManagedLayout *managed_layout;
+
+  g_return_if_fail (GTK_IS_MANAGED_LAYOUT (widget));
+
+  managed_layout = GTK_MANAGED_LAYOUT (widget);
+  gdk_window_hide (managed_layout->bin_window);
+  gdk_window_hide (widget->window);
+
+  GTK_WIDGET_CLASS (gtk_managed_layout_parent_class)->map (widget);
 }
 
 static void
@@ -538,33 +568,6 @@ gtk_managed_layout_style_set (GtkWidget *widget, GtkStyle *old_style)
     {
       gtk_style_set_background (widget->style, GTK_MANAGED_LAYOUT (widget)->bin_window, GTK_STATE_NORMAL);
     }
-}
-
-static void 
-gtk_managed_layout_map (GtkWidget *widget)
-{
-  GtkManagedLayout *managed_layout;
-
-  g_return_if_fail (GTK_IS_MANAGED_LAYOUT (widget));
-
-  managed_layout = GTK_MANAGED_LAYOUT (widget);
-
-  GTK_WIDGET_SET_FLAGS (widget, GTK_MAPPED);
-
-  gtk_layout_manager_foreach_widget (managed_layout->root,
-				     (GtkCallback) gtk_managed_layout_child_map,
-				     NULL);
-
-  gdk_window_show (managed_layout->bin_window);
-  gdk_window_show (widget->window);
-}
-
-static void
-gtk_managed_layout_child_map (GtkWidget *widget,
-                            gpointer   client_data)
-{
-  if (GTK_WIDGET_VISIBLE (widget) && !GTK_WIDGET_MAPPED (widget))
-    gtk_widget_map (widget);
 }
 
 static void 
@@ -588,37 +591,57 @@ static void
 gtk_managed_layout_size_request (GtkWidget     *widget,
 			       GtkRequisition *requisition)
 {
+  GtkBin *bin;
+  GtkLayoutable *child;
   GtkManagedLayout *managed_layout;
-  GtkRequisition  child_requisition;
+  GtkRequisition child_requisition;
   int border_width;
 
   g_return_if_fail (GTK_IS_MANAGED_LAYOUT (widget));
 
+  bin = GTK_BIN (widget);
   managed_layout = GTK_MANAGED_LAYOUT (widget);
+
+  child = GTK_LAYOUTABLE (bin->child);
   border_width = GTK_CONTAINER (widget)->border_width;
 
-  gtk_layout_manager_size_request (managed_layout->root, &child_requisition);
-  requisition->width = child_requisition.width + 2 * border_width;
-  requisition->height = child_requisition.height + 2 * border_width;
+  gtk_layoutable_size_request (child, &child_requisition);
+  managed_layout->width = child_requisition.width + 2 * border_width;
+  managed_layout->height = child_requisition.height + 2 * border_width;
+  managed_layout->requested_width = widget->allocation.width;
+  managed_layout->requested_height = widget->allocation.height;
 
-  managed_layout->width = requisition->width;
-  managed_layout->height = requisition->height;
+  requisition->width = 0;
+  requisition->height = 0;
 }
 
 static void     
 gtk_managed_layout_size_allocate (GtkWidget     *widget,
 			  GtkAllocation *allocation)
 {
+  GtkBin *bin;
+  GtkLayoutable *child;
   GtkManagedLayout *managed_layout;
   GtkAllocation child_allocation;
   gint border_width;
+  gboolean size_changed;
 
   g_return_if_fail (GTK_IS_MANAGED_LAYOUT (widget));
 
+  bin = GTK_BIN (widget);
   managed_layout = GTK_MANAGED_LAYOUT (widget);
+
+  child = GTK_LAYOUTABLE (bin->child);
   border_width = GTK_CONTAINER (widget)->border_width;
 
+  size_changed =
+    (managed_layout->requested_width != allocation->width ||
+     managed_layout->requested_height != allocation->height);
+  
   widget->allocation = *allocation;
+  if (size_changed)
+    gtk_widget_queue_resize (widget);
+
   managed_layout->width = MAX (managed_layout->width, allocation->width);
   managed_layout->height = MAX (managed_layout->height, allocation->height);
 
@@ -627,7 +650,7 @@ gtk_managed_layout_size_allocate (GtkWidget     *widget,
   child_allocation.width = managed_layout->width - 2 * border_width;
   child_allocation.height = 0;
 
-  gtk_layout_manager_size_allocate (managed_layout->root, &child_allocation);
+  gtk_layoutable_size_allocate (child, &child_allocation);
 
   managed_layout->width = MAX (child_allocation.x + child_allocation.width + border_width,
 			     allocation->width);
@@ -676,110 +699,22 @@ gtk_managed_layout_expose (GtkWidget *widget, GdkEventExpose *event)
   return FALSE;
 }
 
-void
-gtk_managed_layout_push (GtkManagedLayout   *managed_layout,
-		       GtkLayoutManager *manager)
-{
-  if (!managed_layout->current)
-    {
-      g_return_if_fail (managed_layout->root == NULL);
-      managed_layout->root = manager;
-      managed_layout->current = g_slist_prepend (managed_layout->current, manager);
-
-      /* Sink for the root reference, add another reference for the GSList.  */
-      g_object_ref_sink (manager);
-      g_object_ref (manager);
-    }
-
-  else
-    {
-      gtk_layout_manager_add (GTK_LAYOUT_MANAGER (managed_layout->current->data),
-			      manager);
-      managed_layout->current = g_slist_prepend (managed_layout->current, manager);
-      g_object_ref (manager);
-    }
-
-  manager->root = managed_layout;
-}
-
-void
-gtk_managed_layout_pop (GtkManagedLayout   *managed_layout)
-{
-  g_return_if_fail (managed_layout->current != NULL);
-
-  g_object_unref (G_OBJECT (managed_layout->current->data));
-  managed_layout->current = managed_layout->current->next;
-}
-
-/* Container methods
- */
 static void
 gtk_managed_layout_add (GtkContainer *container,
-		      GtkWidget    *widget)
+	                GtkWidget    *child)
 {
-  GtkLayoutManager *adaptor = gtk_layout_adaptor_new ();
-  GtkManagedLayout *managed_layout = GTK_MANAGED_LAYOUT (container);;
+  GtkBin *bin;
 
-  if (!managed_layout->current)
-    {
-      gtk_managed_layout_push (managed_layout, adaptor);
-      gtk_managed_layout_pop (managed_layout);
-    }
-  else
-    gtk_layout_manager_add (managed_layout->current->data, adaptor);
+  g_return_if_fail (GTK_IS_WIDGET (child));
 
-  gtk_layout_adaptor_set_child (GTK_LAYOUT_ADAPTOR (adaptor), widget);
+  bin = GTK_BIN (container);
+
+  if (bin->child == NULL && GTK_WIDGET_REALIZED (container))
+    gtk_widget_set_parent_window (child, GTK_MANAGED_LAYOUT (bin)->bin_window);
+
+  GTK_CONTAINER_CLASS (gtk_managed_layout_parent_class)->add (container, child);
 }
 
-static void
-gtk_managed_layout_remove (GtkContainer *container, 
-			 GtkWidget    *widget)
-{
-#if 0
-  GList *tmp_list;
-  GtkManagedLayout *managed_layout;
-  GtkManagedLayoutChild *child = NULL;
-  
-  g_return_if_fail (GTK_IS_MANAGED_LAYOUT (container));
-  
-  managed_layout = GTK_MANAGED_LAYOUT (container);
-
-  tmp_list = managed_layout->children;
-  while (tmp_list)
-    {
-      child = tmp_list->data;
-      if (child->widget == widget)
-	break;
-      tmp_list = tmp_list->next;
-    }
-
-  if (tmp_list)
-    {
-      gtk_widget_unparent (widget);
-
-      managed_layout->children = g_list_remove_link (managed_layout->children, tmp_list);
-      g_list_free_1 (tmp_list);
-      g_free (child);
-    }
-#endif
-}
-
-static void
-gtk_managed_layout_forall (GtkContainer *container,
-                         gboolean      include_internals,
-			 GtkCallback   callback,
-			 gpointer      callback_data)
-{
-  GtkManagedLayout *managed_layout;
-
-  g_return_if_fail (GTK_IS_MANAGED_LAYOUT (container));
-  g_return_if_fail (callback != NULL);
-
-  managed_layout = GTK_MANAGED_LAYOUT (container);
-  if (managed_layout->root != NULL)
-    gtk_layout_manager_foreach_widget (managed_layout->root,
-				       callback, callback_data);
-}
 
 /* Callbacks */
 

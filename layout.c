@@ -22,8 +22,7 @@
 
 #include <gtk/gtk.h>
 #include "gtkmanagedlayout.h"
-#include "gtkstacklayoutmanager.h"
-#include "gtkflowlayoutmanager.h"
+#include "gtklayoutable.h"
 
 int main (int argc, char **argv)
 {
@@ -32,10 +31,11 @@ int main (int argc, char **argv)
   GtkWidget *layout;
   GtkWidget *label;
   GtkWidget *button;
-  GtkLayoutManager *stack;
-  GtkLayoutManager *flow;
+  GtkWidget *vbox;
+  GtkWidget *hbox;
   
   gtk_init (&argc, &argv);
+  gtk_layoutable_init ();
   
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title (GTK_WINDOW (window), "Stack layout");
@@ -52,9 +52,8 @@ int main (int argc, char **argv)
   layout = gtk_managed_layout_new (NULL, NULL);
   gtk_container_add (GTK_CONTAINER (scrolled_window), layout);
 
-  stack = gtk_stack_layout_manager_new ();
-  gtk_layout_manager_set_border_width (stack, 4);
-  gtk_managed_layout_push (GTK_MANAGED_LAYOUT (layout), stack);
+  vbox = gtk_vbox_new (FALSE, 4);
+  gtk_container_add (GTK_CONTAINER (layout), vbox);
 
   label = gtk_label_new ("This is a short blue text");
   {
@@ -63,25 +62,22 @@ int main (int argc, char **argv)
     gtk_widget_modify_fg (label, GTK_STATE_NORMAL, &active_bg_color);
   }
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-  gtk_container_add (GTK_CONTAINER (layout), label);
+  gtk_container_add (GTK_CONTAINER (vbox), label);
 
-  flow = gtk_flow_layout_manager_new ();
-  gtk_layout_manager_set_border_width (stack, 4);
-  gtk_managed_layout_push (GTK_MANAGED_LAYOUT (layout), flow);
+  hbox = gtk_hbox_new (FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (vbox), hbox);
 
   button = gtk_button_new_from_stock (GTK_STOCK_OK);
-  gtk_container_add (GTK_CONTAINER (layout), button);
+  gtk_container_add (GTK_CONTAINER (hbox), button);
 
   button = gtk_button_new_from_stock (GTK_STOCK_CANCEL);
-  gtk_container_add (GTK_CONTAINER (layout), button);
+  gtk_container_add (GTK_CONTAINER (hbox), button);
 
   button = gtk_button_new_from_stock (GTK_STOCK_HELP);
-  gtk_container_add (GTK_CONTAINER (layout), button);
+  gtk_container_add (GTK_CONTAINER (hbox), button);
 
   button = gtk_button_new_with_label ("And one more");
-  gtk_container_add (GTK_CONTAINER (layout), button);
-
-  gtk_managed_layout_pop (GTK_MANAGED_LAYOUT (layout));
+  gtk_container_add (GTK_CONTAINER (hbox), button);
 
   label = gtk_label_new ("This is a long text This is a long text "
 			 "This is a long text This is a long text "
@@ -95,7 +91,7 @@ int main (int argc, char **argv)
 			 "This is a long text This is a long text");
 
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-  gtk_container_add (GTK_CONTAINER (layout), label);
+  gtk_container_add (GTK_CONTAINER (vbox), label);
 
   label = gtk_label_new ("This is a short blue text");
   {
@@ -104,7 +100,7 @@ int main (int argc, char **argv)
     gtk_widget_modify_fg (label, GTK_STATE_NORMAL, &active_bg_color);
   }
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-  gtk_container_add (GTK_CONTAINER (layout), label);
+  gtk_container_add (GTK_CONTAINER (vbox), label);
 
   gtk_window_set_default_size (GTK_WINDOW (window), 300, 40);
   gtk_widget_show_all (window);
