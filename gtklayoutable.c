@@ -25,6 +25,7 @@
 #define P_(x)		(x)
 
 static void		gtk_widget_add_layoutable_interface ();
+static void		gtk_expander_add_layoutable_interface ();
 static void		gtk_label_add_layoutable_interface ();
 static void		gtk_hbox_add_layoutable_interface ();
 static void		gtk_vbox_add_layoutable_interface ();
@@ -54,6 +55,7 @@ gtk_layoutable_init (void)
 
   once_only = 1;
   gtk_widget_add_layoutable_interface ();
+  gtk_expander_add_layoutable_interface ();
   gtk_label_add_layoutable_interface ();
   gtk_hbox_add_layoutable_interface ();
   gtk_vbox_add_layoutable_interface ();
@@ -135,6 +137,45 @@ gtk_widget_layoutable_size_allocate (GtkLayoutable        *layoutable,
   allocation->height = requisition.height;
   gtk_widget_size_allocate (widget, allocation);
 }
+
+
+static void gtk_expander_layoutable_size_request (GtkLayoutable        *layoutable,
+		                                  GtkRequisition       *requisition);
+
+static GtkLayoutableIface    *gtk_expander_parent_layoutable_iface;
+
+static void
+gtk_expander_layoutable_init (GtkLayoutableIface *iface)
+{
+  gtk_expander_parent_layoutable_iface = g_type_interface_peek_parent (iface);
+  iface->size_request = gtk_expander_layoutable_size_request;
+}
+
+static void
+gtk_expander_add_layoutable_interface ()
+{
+  static const GInterfaceInfo layoutable_info =
+  {
+    (GInterfaceInitFunc) gtk_expander_layoutable_init,
+    NULL,
+    NULL
+  };
+
+  g_type_add_interface_static (gtk_expander_get_type (),
+                               GTK_TYPE_LAYOUTABLE,
+                               &layoutable_info);
+}
+
+static void
+gtk_expander_layoutable_size_request (GtkLayoutable        *layoutable,
+                                   GtkRequisition       *requisition)
+{
+  GtkWidget *widget = GTK_WIDGET (layoutable);
+
+  gtk_widget_size_request (widget, requisition);
+  requisition->height = 0;
+}
+
 
 static void gtk_label_layoutable_size_request (GtkLayoutable        *layoutable,
 		                               GtkRequisition       *requisition);

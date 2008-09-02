@@ -21,6 +21,8 @@
 
 
 #include <gtk/gtk.h>
+#include "gtklayoutable.h"
+#include "gtkmanagedlayout.h"
 #include "gtkresizer.h"
 #include "gtkellipsis.h"
 
@@ -108,23 +110,20 @@ ellipsis_collapse (GtkButton *button, void *userdata)
   gtk_ellipsis_set_expanded (userdata, FALSE);
 }
 
-int main (int argc, char **argv)
+void
+add_expander (GtkContainer *container)
 {
+  GtkWidget *hbox;
+  GtkWidget *expander;
   GtkWidget *ellipsis;
   GtkWidget *resizer;
-  GtkWidget *frame;
-  GtkWidget *hbox;
   GtkWidget *da;
-  GtkWidget *window;
   GtkWidget *bbox;
   GtkWidget *button;
-  
-  gtk_init (&argc, &argv);
-  
-  window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title (GTK_WINDOW (window), "Resizer");
-  g_signal_connect_after (window, "destroy",
-                    G_CALLBACK (gtk_main_quit), NULL);
+  GtkWidget *frame;
+
+  expander = gtk_expander_new ("Test");
+  gtk_container_add (container, expander);
 
   ellipsis = gtk_ellipsis_new ("This is a long text This is a long text "
 			       "This is a long text This is a long text "
@@ -133,7 +132,7 @@ int main (int argc, char **argv)
   // gtk_widget_set_state (ellipsis, GTK_STATE_SELECTED);
 
   gtk_container_set_border_width (GTK_CONTAINER (ellipsis), 8);
-  gtk_container_add (GTK_CONTAINER (window), ellipsis);
+  gtk_container_add (GTK_CONTAINER (expander), ellipsis);
 
   hbox = gtk_hbox_new (FALSE, 8);
   gtk_container_add (GTK_CONTAINER (ellipsis), hbox);
@@ -166,6 +165,39 @@ int main (int argc, char **argv)
   gtk_box_pack_end (GTK_BOX (hbox), bbox, FALSE, FALSE, 0);
   g_signal_connect_after (button, "clicked",
                           G_CALLBACK (ellipsis_collapse), ellipsis);
+}
+
+int main (int argc, char **argv)
+{
+  GtkWidget *scrolled_window;
+  GtkWidget *vbox;
+  GtkWidget *layout;
+  GtkWidget *window;
+  int i;
+  
+  gtk_init (&argc, &argv);
+  gtk_layoutable_init ();
+  
+  window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title (GTK_WINDOW (window), "Resizer");
+  g_signal_connect_after (window, "destroy",
+                    G_CALLBACK (gtk_main_quit), NULL);
+
+  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+                                  GTK_POLICY_AUTOMATIC,
+                                  GTK_POLICY_AUTOMATIC);
+
+  gtk_container_add (GTK_CONTAINER (window), scrolled_window);
+
+  layout = gtk_managed_layout_new (NULL, NULL);
+  gtk_container_add (GTK_CONTAINER (scrolled_window), layout);
+
+  vbox = gtk_vbox_new (FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (layout), vbox);
+
+  for (i = 0; i < 5; i++)
+    add_expander (GTK_CONTAINER (vbox));
 
   gtk_widget_show_all (window);
   gtk_main ();
