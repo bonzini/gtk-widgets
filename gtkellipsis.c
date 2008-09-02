@@ -624,16 +624,19 @@ gtk_ellipsis_map (GtkWidget *widget)
 {
   GtkEllipsisPrivate *priv = GTK_ELLIPSIS (widget)->priv;
 
-  if (priv->label)
+  GTK_WIDGET_SET_FLAGS (widget, GTK_MAPPED);
+
+  if (priv->event_window)
+    gdk_window_show (priv->event_window);
+
+  if (priv->expanded)
+    gtk_widget_map (GTK_BIN (widget)->child);
+
+  else if (priv->label)
     {
       gtk_widget_map (priv->label);
       gtk_widget_map (priv->ellipsis_label);
     }
-
-  GTK_WIDGET_CLASS (gtk_ellipsis_parent_class)->map (widget);
-
-  if (priv->event_window)
-    gdk_window_show (priv->event_window);
 }
 
 static void
@@ -646,7 +649,7 @@ gtk_ellipsis_unmap (GtkWidget *widget)
 
   GTK_WIDGET_CLASS (gtk_ellipsis_parent_class)->unmap (widget);
 
-  if (priv->label)
+  if (priv->label && GTK_WIDGET_MAPPED (priv->label))
     {
       gtk_widget_unmap (priv->ellipsis_label);
       gtk_widget_unmap (priv->label);
